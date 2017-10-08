@@ -17,6 +17,7 @@ import os
 import matplotlib.pyplot as plt
 import math
 import gc
+from autoreject import LocalAutoRejectCV
 
 #%% change working directory and set parameters
 
@@ -63,7 +64,7 @@ AudioTactile= mne.io.read_raw_brainvision (fname, preload=True)
 gc.collect() 
 #%% add event list to the brainvision raw object7
 exported_events=np.load("exported_events.npy")  # have manipulated \
-#brainvision.py to save events as exported_events.npy from read marker files
+#brainvision.py to save events as exported_events.npy from  read marker files
 exported_events[:,0]=exported_events[:,0]/(samp_freq/resamp_freq)     
 events=exported_events.tolist()
 AudioTactile.add_events(events)
@@ -71,7 +72,9 @@ gc.collect()
 #%%
 #AudioTactile.notch_filter(np.arange(60, 302, 120), filter_length='auto')
 AudioTactile.resample(sfreq=resamp_freq) 
-AudioTactile=AudioTactile.filter(2,12) 
+#Tim zeyl used the range 0.3, 20 Hz for filetering range. Erwei used 0.1,45 HZ 
+#as filtring range. P300 info is dominant in 0.1-4 HZ
+AudioTactile=AudioTactile.filter(.3,20) 
 #h-freq is 12 to be less than Nyquist freq for 25 samp-freq
 #TODO: change H-freq according to samp-freq
 
@@ -207,8 +210,10 @@ for b in range(numOfTrainBlocks):
         trial.resample(sfreq=256)
         trial_Epoch=mne.Epochs(trial, exported_events, tmin=-.1, tmax=.55, reject=dict(eeg=8e-5)) #TODO: make tmin and tmax a variable, make sure thredhold for eeg is appropriate
 #        trial_Epoch.plot()
+    
         trial_Epoch.load_data()
-        
+#        ar = LocalAutoRejectCV()
+#        epochs_clean = ar.fit_transform(test_Epoch)
         trial_Epoch.drop_channels(trial_Epoch.info['bads'])
 #        trial_Epoch.plot_image(8, cmap='interactive')
         #trial_Epoch.drop_bad() # drops bad epochs automatically
@@ -276,7 +281,7 @@ gc.collect()
 
 #%% preparing the data for testing the classifier 
 b_test=3
-r_test=5
+r_test=6
 test=AudioTactile_runs[b_test][r_test]
 test.n_times
 test.set_montage(montage)
@@ -284,6 +289,8 @@ test_Epoch=mne.Epochs(test, exported_events, tmin=-.1, tmax=.55, reject=dict(eeg
 #        trial_Epoch.plot()
 test_Epoch.load_data()
 test_Epoch.drop_channels(test_Epoch.info['bads'])
+#ar = LocalAutoRejectCV()
+#epochs_clean = ar.fit_transform(test_Epoch)
 #        trial_Epoch.plot_image(8, cmap='interactive')
 #trial_Epoch.drop_bad() # drops bad epochs automatically
    
@@ -296,9 +303,10 @@ for i in range(8) :
     stimulus_code_str=str(i+8)
 #    test_Epoch[stimulus_code_str].plot_image(8, cmap='interactive')
     stimulus_code_avg=test_Epoch[stimulus_code_str].average()
-    stimulus_code_avg.plot() 
+    stimulus_code_avg.plot()
+
     stimulus_code_avg_data = stimulus_code_avg.data
-    
+        
     stimulus_code_concatenatedBestChans=stimulus_code_avg_data[bestChans].reshape(
         np.size(stimulus_code_avg_data[bestChans]))
     stimulus_code_concatenatedBestChans_norm= \
@@ -327,23 +335,23 @@ test_x=test_x[:,::10]
 
 #%% Independent component analysis
 
-from mne.preprocessing import ICA
-n_components = 16  # if float, select n_components by explained variance of PCA
-method = 'fastica'  # for comparison with EEGLAB try "extended-infomax" here
-decim = 3  # we need sufficient statistics, not all time points -> saves time
-
-# we will also set state of the random number generator - ICA is a
-# non-deterministic algorithm, but we want to have the same decomposition
-# and the same order of components each time this tutorial is run
-random_state = 23
-ica = ICA(n_components=n_components, method=method, random_state=random_state)
-print(ica)
-#reject = dict(mag=5e-12, grad=4000e-13)
-ica.fit(trial, decim=decim)
-print(ica)    
-
-ica.plot_components()
-ica.plot_properties(trial,picks=1,psd_args={'fmax': 35.})
+#from mne.preprocessing import ICA
+#n_components = 16  # if float, select n_components by explained variance of PCA
+#method = 'fastica'  # for comparison with EEGLAB try "extended-infomax" here
+#decim = 3  # we need sufficient statistics, not all time points -> saves time
+#
+## we will also set state of the random number generator - ICA is a
+## non-deterministic algorithm, but we want to have the same decomposition
+## and the same order of components each time this tutorial is run
+#random_state = 23
+#ica = ICA(n_components=n_components, method=method, random_state=random_state)
+#print(ica)
+##reject = dict(mag=5e-12, grad=4000e-13)
+#ica.fit(trial, decim=decim)
+#print(ica)    
+#
+#ica.plot_components()
+#ica.plot_properties(trial,picks=1,psd_args={'fmax': 35.})
 
 #%% Feature extraction
 
