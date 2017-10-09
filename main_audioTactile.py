@@ -309,7 +309,9 @@ for i in range(8) :
     stimulus_code_avg.plot()
 
     stimulus_code_avg_data = stimulus_code_avg.data
-        
+    
+#concatenating all channells after each other to be fed to the classifier as 
+#the feature vector    
     stimulus_code_concatenatedBestChans=stimulus_code_avg_data[bestChans].reshape(
         np.size(stimulus_code_avg_data[bestChans]))
     stimulus_code_concatenatedBestChans_norm= \
@@ -317,6 +319,8 @@ for i in range(8) :
             abs(stimulus_code_concatenatedBestChans)) #normalization
     
     test_x[i]=stimulus_code_concatenatedBestChans_norm
+          
+
     
     oddball=oddball_stim[b_test,0][r_test,0] #the stimcode starts from 1 here. to get the event stim, add 7. e.g. 1--> 8: cow
     if i+1==oddball:
