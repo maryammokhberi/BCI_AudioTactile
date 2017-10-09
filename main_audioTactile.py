@@ -73,8 +73,9 @@ gc.collect()
 #AudioTactile.notch_filter(np.arange(60, 302, 120), filter_length='auto')
 AudioTactile.resample(sfreq=resamp_freq) 
 #Tim zeyl used the range 0.3, 20 Hz for filetering range. Erwei used 0.1,45 HZ 
-#as filtring range. P300 info is dominant in 0.1-4 HZ
-AudioTactile=AudioTactile.filter(.3,20) 
+#as filtring range. P300 info is dominant in 0.1-4 HZ. Tim used 4th order butterworth (IIR)
+#and Erwei did not mention the type of filter. Alborzused FIR for his p300 program.
+AudioTactile=AudioTactile.filter(.3,20, method='iir') #4th order butterworth
 #h-freq is 12 to be less than Nyquist freq for 25 samp-freq
 #TODO: change H-freq according to samp-freq
 
@@ -206,7 +207,7 @@ for b in range(numOfTrainBlocks):
         trial=AudioTactile_runs[b][r]
         trial.n_times
         trial.set_montage(montage)
-        trial.filter(2,12)
+        trial.filter(.3,20, method='iir') #4th order butterworth
         trial.resample(sfreq=256)
         trial_Epoch=mne.Epochs(trial, exported_events, tmin=-.1, tmax=.55, reject=dict(eeg=8e-5)) #TODO: make tmin and tmax a variable, make sure thredhold for eeg is appropriate
 #        trial_Epoch.plot()
@@ -287,6 +288,8 @@ test.n_times
 test.set_montage(montage)
 test_Epoch=mne.Epochs(test, exported_events, tmin=-.1, tmax=.55, reject=dict(eeg=8e-5)) #TODO: make tmin and tmax a variable
 #        trial_Epoch.plot()
+trial.filter(.3,20, method='iir') #4th order butterworth
+trial.resample(sfreq=256)
 test_Epoch.load_data()
 test_Epoch.drop_channels(test_Epoch.info['bads'])
 #ar = LocalAutoRejectCV()
