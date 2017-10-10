@@ -20,4 +20,9 @@ AT_poly_svc = svm.SVC(kernel='poly', degree=3, C=C, probability=True).fit(x_bala
 AT_lin_svc = svm.LinearSVC(C=C).fit(x_balanced, y_balanced)
 
 from sklearn.model_selection import cross_val_score
-cross_val_score(AT_svc, x_balanced, y_balanced, cv=5, scoring='roc_auc')
+roc_auc_score=cross_val_score(AT_svc, x_balanced, y_balanced, cv=5, scoring='roc_auc')
+accuracy_score=cross_val_score(AT_svc, x_balanced, y_balanced, cv=5, scoring='accuracy')
+precision_score=cross_val_score(AT_svc, x_balanced, y_balanced, cv=5, scoring='precision')
+recall_score=cross_val_score(AT_svc, x_balanced, y_balanced, cv=5, scoring='recall')
+#recall_score=cross_val_score(AT_svc, x_balanced, y_balanced, cv=5, scoring='confusion_matrix')
+#conf = confusion_matrix(AT_lin_svc, )

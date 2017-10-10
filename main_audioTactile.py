@@ -194,6 +194,8 @@ del temprow
 
 #TODO: Normalize data and reject bad channels and epochs
 #TODO: windsoring the trials
+#TODO: moving average
+#TODO: re-reference the electodes
 bestChans=np.array([False, False, False, True, True, True, True, True, True, \
                             True, True, False, False, True, True, True])
 NumOfBestChans= sum(bestChans==True)
@@ -267,7 +269,7 @@ y_balanced=xy_balanced[:,-1]
 #downsampling data points with resamp_freq=~25Hz
 
 x_balanced=x_balanced[:,::10]
-
+x_imbalanced=x_imbalanced[:,::10]
              
                     
                     
@@ -282,14 +284,14 @@ gc.collect()
 
 #%% preparing the data for testing the classifier 
 b_test=3
-r_test=6
+r_test=5
 test=AudioTactile_runs[b_test][r_test]
 test.n_times
 test.set_montage(montage)
-test_Epoch=mne.Epochs(test, exported_events, tmin=-.1, tmax=.55, reject=dict(eeg=8e-5)) #TODO: make tmin and tmax a variable
+test_Epoch=mne.Epochs(test, exported_events, tmin=-.1, tmax=.55, reject=dict(eeg=8e-5), baseline=(-0.1,0)) #TODO: make tmin and tmax a variable
 #        trial_Epoch.plot()
-trial.filter(.3,20, method='iir') #4th order butterworth
-trial.resample(sfreq=256)
+test.filter(.3,20, method='iir') #4th order butterworth
+test.resample(sfreq=256)
 test_Epoch.load_data()
 test_Epoch.drop_channels(test_Epoch.info['bads'])
 #ar = LocalAutoRejectCV()
@@ -300,37 +302,61 @@ test_Epoch.drop_channels(test_Epoch.info['bads'])
 #######creat feature vector for all stimuli in one run(trial) ########        
 ##trial_Epoch.drop_bad() 
 test_x=np.zeros( (8, NumOfBestChans*test_Epoch.times.shape[0] ), dtype=float)
+test_x_avg=np.zeros( (8, test_Epoch.times.shape[0] ), dtype=float)
 test_y=np.zeros((8,1))
-
+t=(np.arange(0,168)-25.84)*3.87 # 168 data points from -100 s to 550 s to be 
+#as time points in x-axis
 for i in range(8) :
     stimulus_code_str=str(i+8)
 #    test_Epoch[stimulus_code_str].plot_image(8, cmap='interactive')
     stimulus_code_avg=test_Epoch[stimulus_code_str].average()
-    stimulus_code_avg.plot()
+#    stimulus_code_avg.plot()
 
     stimulus_code_avg_data = stimulus_code_avg.data
+
+#normalizing the channels' data
+    stimulus_code_avg_data_norm=np.zeros((16, 168)) #TODO: make dimensions variable
+    for j in range(16):
+        stimulus_code_avg_data_norm[j]=\
+            stimulus_code_avg_data[j]/max(\
+                abs(stimulus_code_avg_data[j])) #normalization
+        plt.figure(j+1)
+        plt.subplot(2,4,i+1)
+        plt.plot(t,stimulus_code_avg_data_norm[j]) 
+        plt.axis([-100,550,-1,1])
+        
     
 #concatenating all channells after each other to be fed to the classifier as 
 #the feature vector    
-    stimulus_code_concatenatedBestChans=stimulus_code_avg_data[bestChans].reshape(
-        np.size(stimulus_code_avg_data[bestChans]))
-    stimulus_code_concatenatedBestChans_norm= \
-        stimulus_code_concatenatedBestChans/max(\
-            abs(stimulus_code_concatenatedBestChans)) #normalization
-    
-    test_x[i]=stimulus_code_concatenatedBestChans_norm
-          
+#    stimulus_code_concatenatedBestChans=stimulus_code_avg_data[bestChans].reshape(
+#        np.size(stimulus_code_avg_data[bestChans]))
+#    stimulus_code_concatenatedBestChans_norm= \
+#        stimulus_code_concatenatedBestChans/max(\
+#            abs(stimulus_code_concatenatedBestChans)) #normalization
+#    
+#    test_x_concatenated[i]=stimulus_code_concatenatedBestChans_norm
+#          
+##using the average of bestChans EEG data as the feature vector
+#    stimulus_code_avgBestChans=stimulus_code_avg_data[bestChans].mean(axis=0)
+#    stimulus_code_avgBestChans_norm= \
+#        stimulus_code_avgBestChans/max(\
+#            abs(stimulus_code_avgBestChans)) #normalization
+#    
+#    test_x_avg[i]=stimulus_code_avgBestChans_norm
+#    plt.subplot(2,4,i+1)         
+#    plt.plot(t,test_x_avg[i]) 
+#    plt.axis([-100,550,-1,1])
 
+  
     
     oddball=oddball_stim[b_test,0][r_test,0] #the stimcode starts from 1 here. to get the event stim, add 7. e.g. 1--> 8: cow
     if i+1==oddball:
         test_y[i]= 1
- 
+
+
 #downsampling test_x with resamp_freq=~25HZ
-
-test_x=test_x[:,::10]
-
-
+#test_x_concatenated=test_x_concatenated[:,::10]
+#test_x_avg=test_x_avg[:,::10]
 
 
 
