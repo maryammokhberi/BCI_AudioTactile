@@ -196,6 +196,8 @@ del temprow
 #TODO: windsoring the trials
 #TODO: moving average
 #TODO: re-reference the electodes
+#TODO: check low pass filtering
+
 bestChans=np.array([False, False, False, True, True, True, True, True, True, \
                             True, True, False, False, True, True, True])
 NumOfBestChans= sum(bestChans==True)
@@ -211,7 +213,8 @@ for b in range(numOfTrainBlocks):
         trial.set_montage(montage)
         trial.filter(.3,20, method='iir') #4th order butterworth
         trial.resample(sfreq=256)
-        trial_Epoch=mne.Epochs(trial, exported_events, tmin=-.1, tmax=.55, reject=dict(eeg=8e-5)) #TODO: make tmin and tmax a variable, make sure thredhold for eeg is appropriate
+        trial_Epoch=mne.Epochs(trial, exported_events, tmin=-.1, tmax=.55,\
+                               reject=dict(eeg=8e-5), baseline=(-0.1,0)) #TODO: make tmin and tmax a variable, make sure thredhold for eeg is appropriate
 #        trial_Epoch.plot()
     
         trial_Epoch.load_data()
