@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 from sklearn import svm
 
 C=1
-AT_svc=svm.SVC(kernel='linear', C=C, probability=True).fit(x_balanced, y_balanced)
+AT_svc=svm.SVC(kernel='linear', C=C, probability=True).fit(x_imbalanced, y_imbalanced)
 
 AT_rbf_svc = svm.SVC(kernel='rbf', gamma=0.7, C=C, probability=True).fit(x_balanced, y_balanced)
 
@@ -24,5 +24,8 @@ roc_auc_score=cross_val_score(AT_svc, x_balanced, y_balanced, cv=5, scoring='roc
 accuracy_score=cross_val_score(AT_svc, x_balanced, y_balanced, cv=5, scoring='accuracy')
 precision_score=cross_val_score(AT_svc, x_balanced, y_balanced, cv=5, scoring='precision')
 recall_score=cross_val_score(AT_svc, x_balanced, y_balanced, cv=5, scoring='recall')
-#recall_score=cross_val_score(AT_svc, x_balanced, y_balanced, cv=5, scoring='confusion_matrix')
-#conf = confusion_matrix(AT_lin_svc, )
+
+imbalanceDataMetrics={'roc_auc_score':roc_auc_score.mean(),\
+                    'accuracy_score':accuracy_score.mean(),\
+                    'precision_score':precision_score.mean(),\
+                    'recall_score':recall_score.mean() }

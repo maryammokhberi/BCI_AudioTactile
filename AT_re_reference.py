@@ -15,21 +15,21 @@ trial.set_montage(montage)
 trial.filter(.3,20, method='iir') #4th order butterworth
 trial.resample(sfreq=256)
 
-# Default MNE referencing: average of all channels
-
-trial.set_montage(montage)
-trial.filter(.3,20, method='iir') #4th order butterworth
-trial.resample(sfreq=256)
-trial_Epoch=mne.Epochs(trial, exported_events, tmin=-.1, tmax=.55,\
-                       reject=dict(eeg=8e-5), baseline=(-0.1,0)) #TODO: make tmin and tmax a variable, make sure thredhold for eeg is appropriate
-
-title= 'referenced to the average of all channels'                       
-for i in range(2) :
-    stimulus_code_str=str(i+8)
-    #plot average of stim_code epochs voltage + cmap of individuals
-    trial_Epoch[stimulus_code_str].plot_image(8, cmap='interactive')
-    stimulus_code_avg=trial_Epoch[stimulus_code_str].average()
-    stimulus_code_avg.plot(titles=dict(eeg=title)) 
+## Default MNE referencing: average of all channels
+#
+#trial.set_montage(montage)
+#trial.filter(.3,20, method='iir') #4th order butterworth
+#trial.resample(sfreq=256)
+#trial_Epoch=mne.Epochs(trial, exported_events, tmin=-.1, tmax=.55,\
+#                       reject=dict(eeg=8e-5), baseline=(-0.1,0)) #TODO: make tmin and tmax a variable, make sure thredhold for eeg is appropriate
+#
+#title= 'referenced to the average of all channels'                       
+#for i in range(2) :
+#    stimulus_code_str=str(i+8)
+#    #plot average of stim_code epochs voltage + cmap of individuals
+#    trial_Epoch[stimulus_code_str].plot_image(8, cmap='interactive')
+#    stimulus_code_avg=trial_Epoch[stimulus_code_str].average()
+#    stimulus_code_avg.plot(titles=dict(eeg=title)) 
 
 
 
@@ -71,19 +71,19 @@ for i in range(2) :
     stimulus_code_avg.plot(titles=dict(eeg=title)) 
 
 
-#refrencing to a mean of some channels
+##refrencing to a mean of some channels
 
-trial_reReferenced, _=mne.set_eeg_reference(trial, ['T7', 'T8'])
-trial.set_montage(montage)
-trial.filter(.3,20, method='iir') #4th order butterworth
-trial.resample(sfreq=256)
-trial_Epoch=mne.Epochs(trial_reReferenced, exported_events, tmin=-.1, tmax=.55,\
-                       reject=dict(eeg=8e-5), baseline=(-0.1,0)) #TODO: make tmin and tmax a variable, make sure thredhold for eeg is appropriate
-
-title= 'EEG referenced to mean of T7 and T8'                                              
-for i in range(2) :
-    stimulus_code_str=str(i+8)
-    #plot average of stim_code epochs voltage + cmap of individuals
-    trial_Epoch[stimulus_code_str].plot_image(8, cmap='interactive')
-    stimulus_code_avg=trial_Epoch[stimulus_code_str].average()
-    stimulus_code_avg.plot(titles=dict(eeg=title)) 
+#trial_reReferenced, _=mne.set_eeg_reference(trial, ['T7', 'T8'])
+#trial.set_montage(montage)
+#trial.filter(.3,20, method='iir') #4th order butterworth
+#trial.resample(sfreq=256)
+#trial_Epoch=mne.Epochs(trial_reReferenced, exported_events, tmin=-.1, tmax=.55,\
+#                       reject=dict(eeg=8e-5), baseline=(-0.1,0)) #TODO: make tmin and tmax a variable, make sure thredhold for eeg is appropriate
+#
+#title= 'EEG referenced to mean of T7 and T8'                                              
+#for i in range(2) :
+#    stimulus_code_str=str(i+8)
+#    #plot average of stim_code epochs voltage + cmap of individuals
+#    trial_Epoch[stimulus_code_str].plot_image(8, cmap='interactive')
+#    stimulus_code_avg=trial_Epoch[stimulus_code_str].average()
+#    stimulus_code_avg.plot(titles=dict(eeg=title)) 
