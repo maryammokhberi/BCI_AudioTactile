@@ -271,7 +271,7 @@ for b in range(numOfTrainBlocks):
 
 #            trial_Epoch[stimulus_code_str].plot_image(4, cmap='interactive')
             stimulus_code_avg=trial_Epoch[stimulus_code_str].average()
-            
+             
             
 #            print maxOfavgOfEpochsChans
         
@@ -620,6 +620,6 @@ for i in range(oddball_Epochs_data.shape[0]):
 
 #one componebt of the feature vectore could be the eeg data itself
 
-
+#Git test
 
 
