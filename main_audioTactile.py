@@ -17,6 +17,7 @@ import os
 import matplotlib.pyplot as plt
 import math
 import gc
+from datetime import datetime
 #from autoreject import LocalAutoRejectCV
 bads=['PO8','PO7','P3','P4','CP3','CP4','C4','C3','F3','F4','T7','T8'] 
 #%% change working directory and set parameters
@@ -79,6 +80,12 @@ AudioTactile.resample(sfreq=resamp_freq)
 #and Erwei did not mention the type of filter. Alborzused FIR for his p300 program.
 AudioTactile.filter(1,12,method='iir') 
 AudioTactile.info['lowpass']=12
+#%%annotations 
+annot_params= np.load('annot_params.npy')
+onset=annot_params[0]['onset']
+duration=annot_params[0]['duration']
+annotations=mne.Annotations(onset,duration,'bad')
+AudioTactile.annotations=annotations
 
 
 gc.collect()
@@ -179,19 +186,21 @@ for i in range(runNum*blockNum):
 #    print tmax
 #    if (i%10)<9: print "(tmax-tmin)* resamp_freq:" , (tmax-tmin)* resamp_freq
 ##    print "AudioTactile_runs[",block,"][",run,"].n_times:" , AudioTactile_runs[block][run].n_times
-    print "AudioTactile_runs[0][0] length in sec" ,\
-                            AudioTactile_runs[0][0].n_times/resamp_freq
-    if i>0: print "AudioTactile_runs[0][1] length in sec" , \
-                                    AudioTactile_runs[0][1].n_times/resamp_freq
-    if i>9: print "AudioTactile_runs[1][0] length in sec" , \
-                                    AudioTactile_runs[1][0].n_times/resamp_freq
+    print "AudioTactile_runs",block+1,",",run+1," length in sec" ,\
+                            AudioTactile_runs[block][run].n_times/resamp_freq
+#    if i>0: print "AudioTactile_runs[0][1] length in sec" , \
+#                                    AudioTactile_runs[0][1].n_times/resamp_freq
+#    if i>9: print "AudioTactile_runs[1][0] length in sec" , \
+#                                    AudioTactile_runs[1][0].n_times/resamp_freq
 gc.collect()    
+
+
 #%% delete unnecessary variables for the sake of freeing memory
 del AudioTactile_blocks
 del AudioTactile 
 del blockReplica
 del temprow
-                                    
+
 #%% preliminary plot of epochs and feature extraction
 
 #pipeline: downsampling, filtering 1,12 ,re-reference [], epoch, baseline -.4,
@@ -209,14 +218,17 @@ del temprow
 
 #bestChans=np.array([False, False, False, True, False, False, False, True, True, \
 #                            False, False, False, False, False, False, False])
-bads=['PO8','PO7','P3','P4','CP3','CP4','C4','C3','F3','F4','T7','T8'] #non-relevant channels
-numOfChans=16
+bads=['PO8','PO7','P3','P4','CP3','CP4','C4','C3','F3','F4','T7','T8','STI 014'] #non-relevant channels
+numOfChans=17
 numOfBestChans=numOfChans- len(bads) #one channel is stim (marker) channel
 numOfTrainBlocks=5
-x_imbalanced=np.zeros((numOfTrainBlocks*runNum*8 , numOfBestChans*51)) #8 is the num of stimuli, TODO: 168 is the length of epochs in s_freq=256, 18 for s_reamp=25
+tmin=0
+tmax=1
+decim=20
+x_imbalanced=np.zeros((numOfTrainBlocks*runNum*8 , numOfBestChans*(np.int((tmax*1000/20)+1))  )) #8 is the num of stimuli, TODO: 168 is the length of epochs in s_freq=256, 18 for s_reamp=25
 y_imbalanced=np.zeros((numOfTrainBlocks*runNum*8 , 1 ))
 bad_epochs=np.zeros((numOfTrainBlocks, runNum))
-
+prediction_is_correct=np.zeros((50,1))
 for b in range(numOfTrainBlocks):
     for r in range(runNum):
         print "********preparing data for the stimuli in block", b+1,"run#", r+1,"****************\
@@ -230,16 +242,18 @@ for b in range(numOfTrainBlocks):
         trial.filter(1,12,method='iir')
         trial.resample(sfreq=resamp_freq)
         trial_Epoch=mne.Epochs(trial_rerefrenced, exported_events, tmin=-.4,
-                               tmax=2, decim=40) #TODO: make tmin and tmax a variable, make sure thredhold for eeg is appropriate
+                               tmax=1.5, decim=decim, reject_by_annotation=True,
+                               reject=dict(eeg=2e-4)) #TODO: make tmin and tmax a variable, make sure thredhold for eeg is appropriate
 
         trial_Epoch.load_data()
-        trial_Epoch.crop(tmin=0,tmax=2)        
+        trial_Epoch_long=trial_Epoch.copy() # to be used later in peak-alignment
+        trial_Epoch.crop(tmin=tmin,tmax=tmax)        
 #        ar = LocalAutoRejectCV()
 #        epochs_clean = ar.fit_transform(test_Epoch)
         
-        trial_Epoch.plot()
-        plt.ion()
-        plt.pause(30)
+#        trial_Epoch.plot()
+#        plt.ion()
+#        plt.pause(30)
 #        bad_epochs[b][r]=raw_input("Please mark bad epochs on the plot and enter them as a list of ints here")
         trial_Epoch.drop_channels(trial_Epoch.info['bads'])
 #        trial_Epoch.plot_image(combine='mean', cmap='interactive')
@@ -247,7 +261,8 @@ for b in range(numOfTrainBlocks):
         trial_Epoch_data=trial_Epoch.get_data()
         #######creat feature vector for all stimuli in one run(trial) ########        
         ##trial_Epoch.drop_bad() 
-        trial_x=np.zeros( (8, numOfBestChans*trial_Epoch.times.shape[0] ), dtype=float)
+
+        trial_x=np.zeros( (8, numOfBestChans*trial_Epoch.times.shape[0]), dtype=float)
         trial_y=np.zeros((8,1))
         
         for i in range(8) :
@@ -256,12 +271,18 @@ for b in range(numOfTrainBlocks):
 
 #            trial_Epoch[stimulus_code_str].plot_image(4, cmap='interactive')
             stimulus_code_avg=trial_Epoch[stimulus_code_str].average()
+            
+            
+#            print maxOfavgOfEpochsChans
+        
+
 
 #            stimulus_code_avg.plot()
             stimulus_code_avg_data = stimulus_code_avg.data
             stimulus_code_avg_data_norm=\
                     stimulus_code_avg_data/np.max(\
                         np.abs(stimulus_code_avg_data)) #normalization
+            
             
             
             #original signal as feature (channels concatenared after each other)
@@ -288,16 +309,32 @@ for b in range(numOfTrainBlocks):
                                                         
             
             trial_x[i]=stimulus_code_concatenatedBestChans
-            temp=trial_x[i]
+#            temp=trial_x[i]
 #            ax2=plt.subplot(2,4,i+1)
 #            ax2.plot(temp)
 #            ax2.set_xlim(0,257)
 #            ax2.set_ylim(-1,1)         
-#           
-            
+           
+             
             oddball=oddball_stim[b,0][r,0] #the stimcode starts from 1 here. to get the event stim, add 7. e.g. 1--> 8: cow
             if i+1==oddball:
                 trial_y[i]= 1
+                
+#            oddball_code_str=str(oddball+7)
+#        
+#            oddball_code_avg=trial_Epoch[oddball_code_str].average()
+#            oddball_code_avg_data = oddball_code_avg.data
+#            oddball_code_avg_data_norm=\
+#                    oddball_code_avg_data/np.max(\
+#                        np.abs(oddball_code_avg_data)) #normalization
+#
+#            axAvgPz=plt.subplot(5,10,r+1)
+#            axAvgPz.plot(oddball_code_avg_data_norm[3])
+#            axAvgPz.set_ylim(-1,1)
+            
+        trial_predictedOddball=1+np.argmin(trial_x)
+        if oddball==trial_predictedOddball:
+            prediction_is_correct[10*b+r]=1
         x_imbalanced[((10*b+r)*8):((10*b+r)*8)+8,:]=trial_x #imbalanced data
         y_imbalanced[((10*b+r)*8):((10*b+r)*8)+8,:]=trial_y
 
@@ -317,11 +354,10 @@ for i in range(xy_imbalanced.shape[0]):
 x_balanced=xy_balanced[:,0:-1]        
 y_balanced=xy_balanced[:,-1]
 
-
-#downsampling data points with resamp_freq=~25Hz
-x_balanced=x_balanced[:,::10]
-x_imbalanced=x_imbalanced[:,::10]
-
+xy_imbalanced_oddball=xy_imbalanced[np.argwhere(xy_imbalanced[:,-1]==1)]
+xy_imbalanced_oddball_mean=xy_imbalanced_oddball.mean(axis=0)
+xy_imbalanced_nonoddball=xy_imbalanced[np.argwhere(xy_imbalanced[:,-1]==0)]
+xy_imbalanced_nonoddball_mean=xy_imbalanced_nonoddball.mean(axis=0)
                     
                     
                     
@@ -333,16 +369,146 @@ x_imbalanced=x_imbalanced[:,::10]
 ##trial_Epoch.plot_psd_topomap
 gc.collect()
 
-#%% peak picking
+
+#%% plot the test run and epoch data
+
+b=1
+r=0
+        
+print "********preparing data for the stimuli in block", b+1,"run#", r+1,"****************\
+        *********************"
+trial=AudioTactile_runs[b][r]
+trial.n_times
+trial.load_data()
+trial.info['bads']=bads
+trial.set_montage(montage)
+trial_rerefrenced, _= mne.set_eeg_reference(trial,[])
+trial.filter(1,12,method='iir')
+trial.resample(sfreq=resamp_freq)
+trial_Epoch=mne.Epochs(trial_rerefrenced, exported_events, tmin=-.4,
+                   tmax=1.5, decim=5, reject_by_annotation=True,
+                   reject=dict(eeg=2e-4)) #TODO: make tmin and tmax a variable, make sure thredhold for eeg is appropriate
+trial_Epoch.load_data()
+trial_Epoch_long=trial_Epoch.copy() # to be used later in peak-alignment
+trial_Epoch.crop(tmin=.18,tmax=.7)        
+#        ar = LocalAutoRejectCV()
+#        epochs_clean = ar.fit_transform(test_Epoch)
+
+#        trial_Epoch.plot()
+#        plt.ion()
+#        plt.pause(30)
+#        bad_epochs[b][r]=raw_input("Please mark bad epochs on the plot and enter them as a list of ints here")
+trial_Epoch.drop_channels(trial_Epoch.info['bads'])
+#        trial_Epoch.plot_image(combine='mean', cmap='interactive')
+#trial_Epoch.drop_bad() # drops bad epochs automatically
+trial_Epoch_data=trial_Epoch.get_data()
+#######creat feature vector for all stimuli in one run(trial) ########        
+##trial_Epoch.drop_bad() 
+trial_x=np.zeros( (8, numOfBestChans*trial_Epoch.times.shape[0] ), dtype=float)
+trial_y=np.zeros((8,1))
+
+for i in range(8) :
+    stimulus_code_str=str(i+8)
+    #plot average of stim_code epochs voltage + cmap of individuals    
+    #trial_Epoch[stimulus_code_str].plot_image(4, cmap='interactive')
+    
+    #average over  channels and return peak-aligned stimulus epochs
+    stim_Epochs_data_avgOfChans=np.mean(
+            trial_Epoch[stimulus_code_str].get_data(), axis=1)
+    
+    stim_Epochs_data_aligned=peak_align(stim_Epochs_data_avgOfChans,\
+                                        trial_Epoch_long, tmin, tmax, decim,\
+                                        stimulus_code_str)
+    
+    stim_Epochs_aligned_avgOfEpochs=np.mean(stim_Epochs_data_aligned, axis=0)
+    stim_Epochs_aligned_avgOfEpochsChans=np.mean(stim_Epochs_aligned_avgOfEpochs, axis=0)
+    print np.max(stim_Epochs_aligned_avgOfEpochsChans)
+#    axaligned=plt.subplot(4,2,i+1)
+#    axaligned.plot(stim_Epochs_aligned_avgOfEpochsChans) 
+#    axaligned.set_ylim(-.00004,.00004)
+    
+    #average over stim epochs
+    stimulus_code_avg=trial_Epoch[stimulus_code_str].average()
+    #stimulus_code_avg.plot()
+    stimulus_code_avg_data = stimulus_code_avg.data
+    stimulus_code_avg_data_norm =\
+        stimulus_code_avg_data/np.max( 
+                np.abs(stimulus_code_avg_data)) #normalization
+     
+        
+    #original signal as feature (channels concatenared after each other)
+    stimulus_code_concatenatedBestChans=stimulus_code_avg_data_norm.reshape(
+        np.size(stimulus_code_avg_data_norm))
+    
+    #r-squared as feature 
+    
+    
+    stimulus_code_rsquared= np.square((stimulus_code_avg_data- np.mean(\
+                                          stimulus_code_avg_data\
+                                          )))/(float(np.size(stimulus_code_avg_data))*\
+                                            np.var(stimulus_code_avg_data))
+        #(channels concatenared after each other)
+    stimulus_code_rsquared_concatenated=stimulus_code_rsquared.reshape(
+            np.size(stimulus_code_rsquared))
+        #Average of channels 
+    stimulus_code_rsquared_AvgOfChans=np.mean(stimulus_code_rsquared)
+    stimulus_code_avg_rsquared_log=np.log(stimulus_code_rsquared_concatenated)
+ 
+                   
+                                                
+    
+    trial_x[i]=stimulus_code_concatenatedBestChans
+    temp=trial_x[i]
+    #            ax2=plt.subplot(2,4,i+1)
+    #            ax2.plot(temp)
+    #            ax2.set_xlim(0,257)
+    #            ax2.set_ylim(-1,1)         
+    #           
+
+    oddball=oddball_stim[b,0][r,0] #the stimcode starts from 1 here. to get the event stim, add 7. e.g. 1--> 8: cow
+    if i+1==oddball:
+        trial_y[i]= 1
 
 
-
-#%% plot the epoch data
 #for i in range (8):
 #    stimulus_code_str=str(i+8)
 #    trial_Epoch[stimulus_code_str].plot_image(2, cmap='interactive')
 #    stimulus_code_avg=trial_Epoch[stimulus_code_str].average()
 #    stimulus_code_avg.plot()
+
+#ploting individual oddball epochs
+  
+oddball_code_str=str(oddball+7)   
+oddball_Epochs_data= trial_Epoch[oddball_code_str].get_data()
+oddball_Epochs_data_avg=np.mean(oddball_Epochs_data, axis=0)
+oddball_Epochs_data_avgOfChans=np.mean(oddball_Epochs_data, axis=1)
+oddball_Epochs_data_avgFz=oddball_Epochs_data_avg[2]
+oddball_Epochs_derivative=np.diff(oddball_Epochs_data)
+z=np.zeros((oddball_Epochs_data.shape[-1]))
+plt.figure(0)
+plt.plot(oddball_Epochs_data_avgFz)
+for i in range(oddball_Epochs_data.shape[0]):
+    plt.figure(1)
+    axavg=plt.subplot(1,oddball_Epochs_data.shape[0], i+1)
+    axavg.plot(10000*oddball_Epochs_data_avgOfChans[i])
+    axavg.plot(z)
+    axavg.set_ylim(-.5,.5)
+    
+#    
+#    oddball_Epoch_rsquared= np.square((oddball_Epochs_data[i][2]- np.mean(\
+#                                          oddball_Epochs_data[i][2]\
+#                                          )))/(float(np.size(oddball_Epochs_data[i][2]))*\
+#                                            np.var(oddball_Epochs_data[i][2]))
+#    ax4=plt.subplot(abs(oddball_Epochs_data.shape[0]/3)+1, 3, i+1)
+#    ax4.plot(oddball_Epoch_rsquared)
+#    ax4.set_ylim(-.1,.1)
+
+
+    
+        
+  
+    
+
 
 
 

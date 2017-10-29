@@ -10,8 +10,17 @@ import matplotlib.pyplot as plt
 
 from sklearn import svm
 
-x=x_imbalanced
-y=y_imbalanced
+x=x_balanced
+y=y_balanced
+
+#removing the nan elements due to rejecting bad epochs
+nan_elements=np.argwhere(np.isnan(x)==True)
+nan_index=nan_elements[:,0]
+nan_index=np.unique(nan_index)
+x=np.delete(x, nan_index, axis=0)
+
+
+
 
 C=1
 #
@@ -51,7 +60,7 @@ for train_index, test_index in kf.split(x):
     y_train, y_test = y[train_index], y[test_index]
 
     AT_svc = svm.SVC(kernel='linear', C=C, probability=True).fit(x_train, y_train)
-    y_pred = AT_svc.predict
+    y_pred = AT_svc.predict(x_test)
     accuracy.append(accuracy_score(y_test, y_pred))
     precision.append(precision_score(y_test, y_pred))
     recall.append(recall_score(y_test, y_pred))
