@@ -620,6 +620,6 @@ for i in range(oddball_Epochs_data.shape[0]):
 
 #one componebt of the feature vectore could be the eeg data itself
 
-#Git test
+
 
 
