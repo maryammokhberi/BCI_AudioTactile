@@ -222,10 +222,10 @@ bads=['PO8','PO7','P3','P4','CP3','CP4','C4','C3','F3','F4','T7','T8','STI 014']
 numOfChans=17
 numOfBestChans=numOfChans- len(bads) #one channel is stim (marker) channel
 numOfTrainBlocks=5
-tmin=0
-tmax=1
+tmin=.4
+tmax=.8
 decim=20
-x_imbalanced=np.zeros((numOfTrainBlocks*runNum*8 , numOfBestChans*(np.int((tmax*1000/20)+1))  )) #8 is the num of stimuli, TODO: 168 is the length of epochs in s_freq=256, 18 for s_reamp=25
+x_imbalanced=np.zeros((numOfTrainBlocks*runNum*8 , numOfBestChans*(np.int(((tmax-tmin)*1000/20)+1))  )) #8 is the num of stimuli, TODO: 168 is the length of epochs in s_freq=256, 18 for s_reamp=25
 y_imbalanced=np.zeros((numOfTrainBlocks*runNum*8 , 1 ))
 bad_epochs=np.zeros((numOfTrainBlocks, runNum))
 prediction_is_correct=np.zeros((50,1))
@@ -332,9 +332,6 @@ for b in range(numOfTrainBlocks):
 #            axAvgPz.plot(oddball_code_avg_data_norm[3])
 #            axAvgPz.set_ylim(-1,1)
             
-        trial_predictedOddball=1+np.argmin(trial_x)
-        if oddball==trial_predictedOddball:
-            prediction_is_correct[10*b+r]=1
         x_imbalanced[((10*b+r)*8):((10*b+r)*8)+8,:]=trial_x #imbalanced data
         y_imbalanced[((10*b+r)*8):((10*b+r)*8)+8,:]=trial_y
 
@@ -411,21 +408,7 @@ for i in range(8) :
     stimulus_code_str=str(i+8)
     #plot average of stim_code epochs voltage + cmap of individuals    
     #trial_Epoch[stimulus_code_str].plot_image(4, cmap='interactive')
-    
-    #average over  channels and return peak-aligned stimulus epochs
-    stim_Epochs_data_avgOfChans=np.mean(
-            trial_Epoch[stimulus_code_str].get_data(), axis=1)
-    
-    stim_Epochs_data_aligned=peak_align(stim_Epochs_data_avgOfChans,\
-                                        trial_Epoch_long, tmin, tmax, decim,\
-                                        stimulus_code_str)
-    
-    stim_Epochs_aligned_avgOfEpochs=np.mean(stim_Epochs_data_aligned, axis=0)
-    stim_Epochs_aligned_avgOfEpochsChans=np.mean(stim_Epochs_aligned_avgOfEpochs, axis=0)
-    print np.max(stim_Epochs_aligned_avgOfEpochsChans)
-#    axaligned=plt.subplot(4,2,i+1)
-#    axaligned.plot(stim_Epochs_aligned_avgOfEpochsChans) 
-#    axaligned.set_ylim(-.00004,.00004)
+
     
     #average over stim epochs
     stimulus_code_avg=trial_Epoch[stimulus_code_str].average()
