@@ -18,14 +18,17 @@ def latency(inputEpoch, tmin, decim):
 
 
 #2: Amplitude
-def amplitude(inputEpoc):
+def amplitude(inputEpoch):
     """maximum signal value"""
-    amplitude= np.max(inputEpoc)
+    amplitude= np.max(inputEpoch)
     return amplitude
 
 #3: Latency/amplitude ratio (LAR)
-def lat_amp_ratio (latency, amplitude):
+def lat_amp_ratio (inputEpoch, tmin, decim):
     """latency/amplitude ration"""
+    inputEpoch_maxpoint=np.argmax(inputEpoch)+1
+    latency= (inputEpoch_maxpoint*decim)/float(1000) + tmin
+    amplitude= np.max(inputEpoch)
     lat_amp_ratio=latency/amplitude
     return lat_amp_ratio
 
@@ -36,8 +39,11 @@ def abs_amp(inputEpoch):
     return abs_amp
  
 #5: Absolute latency/amplitude ratio
-def abs_lat_amp_ratio(latency, amplitude):
+def abs_lat_amp_ratio(inputEpoch, tmin, decim):
     """Absolute latency/amplitude ratio"""
+    inputEpoch_maxpoint=np.argmax(inputEpoch)+1
+    latency= (inputEpoch_maxpoint*decim)/float(1000) + tmin
+    amplitude= np.max(inputEpoch)
     abs_lat_amp_ratio=np.abs(latency/amplitude)
     return abs_lat_amp_ratio
 
@@ -58,7 +64,7 @@ def total_area(inputEpoch):
     """sum of all data points"""
     total_area=np.sum(inputEpoch)
     return total_area
-#9: abs_total_are
+#9: abs_total_area 
 def abs_total_area(inputEpoch):
     """abs_total_are"""
     abs_total_area=np.abs(np.sum(inputEpoch))

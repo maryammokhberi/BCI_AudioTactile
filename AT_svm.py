@@ -7,10 +7,11 @@ Created on Thu Sep 14 12:06:08 2017
 
 import numpy as np
 import matplotlib.pyplot as plt
+from sklearn import preprocessing
 
 from sklearn import svm
 
-x=x_balanced
+x=X_balanced
 y=y_balanced
 
 #removing the nan elements due to rejecting bad epochs
@@ -18,6 +19,13 @@ nan_elements=np.argwhere(np.isnan(x)==True)
 nan_index=nan_elements[:,0]
 nan_index=np.unique(nan_index)
 x=np.delete(x, nan_index, axis=0)
+nan_elements=np.argwhere(np.isnan(y)==True)
+nan_index=nan_elements[:,0]
+nan_index=np.unique(nan_index)
+y=np.delete(y, nan_index, axis=0)
+
+#scaling features between -1 and 1
+x=preprocessing.minmax_scale(x,feature_range=(-1,1))
 
 
 
