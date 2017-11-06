@@ -5,28 +5,28 @@ Created on Thu Sep 14 12:06:08 2017
 @author: mokhberim
 """
 
+#def AT_svm(X,y):
 import numpy as np
-import matplotlib.pyplot as plt
 from sklearn import preprocessing
-
+from sklearn.metrics import precision_recall_curve, roc_curve, confusion_matrix
 from sklearn import svm
+import matplotlib.pyplot as plt
 
-x=X_balanced
-y=y_balanced
+
+data = np.concatenate([X, y], axis = 1)
 
 #removing the nan elements due to rejecting bad epochs
-nan_elements=np.argwhere(np.isnan(x)==True)
+nan_elements=np.argwhere(np.isnan(data)==True)
 nan_index=nan_elements[:,0]
 nan_index=np.unique(nan_index)
-x=np.delete(x, nan_index, axis=0)
-nan_elements=np.argwhere(np.isnan(y)==True)
-nan_index=nan_elements[:,0]
-nan_index=np.unique(nan_index)
-y=np.delete(y, nan_index, axis=0)
+data =np.delete(data, nan_index, axis=0)
+
+data_X=data[:,0:-1]        
+data_y=data[:,-1]
 
 #scaling features between -1 and 1
-x=preprocessing.minmax_scale(x,feature_range=(-1,1))
-
+data_X=preprocessing.minmax_scale(data_X,feature_range=(-1,1))
+#x=preprocessing.scale(X, axis = 0 )
 
 
 
@@ -56,24 +56,73 @@ C=1
 from sklearn.metrics import accuracy_score, precision_score, roc_auc_score, recall_score
 from sklearn.model_selection import KFold
 kf = KFold(n_splits=5)
-kf.get_n_splits(x)
+kf.get_n_splits(data_X)
 print(kf) 
 accuracy=list()
 precision=list()
 recall=list()
 roc_auc=list()
-for train_index, test_index in kf.split(x):
+conf = np.zeros((2,2))
+
+for train_index, test_index in kf.split(data_X):
     print("TRAIN:", train_index, "TEST:", test_index)
-    x_train, x_test = x[train_index], x[test_index]
-    y_train, y_test = y[train_index], y[test_index]
+    X_train, X_test = data_X[train_index], data_X[test_index]
+    y_train, y_test = data_y[train_index], data_y[test_index]
+    
+    
+         #oversampling the oddball stimuli to fix imabalance of the data
+#    Xy=np.concatenate([X_train,y_train[:,np.newaxis]],axis=1)
+#    j = 0
+#    for i in range(Xy.shape[0]):
+#          
+#        if Xy[i,-1]==1:
+#            temp=np.tile(Xy[i,:], (7,1)) # Xy_balanced[j:j+7,:]
+#            j=j+7
+#        else:
+#            temp=Xy[i,:] #Xy_balanced[j,:]
+#            temp = temp[np.newaxis, :]
+#            j=j+1
+#            
+#        if i==0:
+#            Xy_balanced = temp
+#        else:
+#            Xy_balanced = np.concatenate([Xy_balanced, temp], axis = 0)
+#    
+#    X_train_balanced=Xy_balanced[:,0:-1]        
+#    y_train_balanced=Xy_balanced[:,-1]
+    
+    
+    X_train_balanced = X_train      
+    y_train_balanced = y_train
+    
+    
+    
+    
+    AT_svc = svm.SVC(kernel='linear', C=C, probability=True,class_weight='balanced').fit(X_train, y_train)
+    y_prob_pred=AT_svc.predict_proba(X_test)
+    
+    y_pred = AT_svc.predict(X_test)
+    
+    y_pred_all
+    
+        
 
-    AT_svc = svm.SVC(kernel='linear', C=C, probability=True).fit(x_train, y_train)
-    y_pred = AT_svc.predict(x_test)
-    accuracy.append(accuracy_score(y_test, y_pred))
-    precision.append(precision_score(y_test, y_pred))
-    recall.append(recall_score(y_test, y_pred))
-    roc_auc.append(roc_auc_score(y_test, y_pred))
+accuracy.append(accuracy_score(y_test, y_pred))
+precision.append(precision_score(y_test, y_pred))
+recall.append(recall_score(y_test, y_pred))
+roc_auc.append(roc_auc_score(y_test, y_pred))
+conf += confusion_matrix(y_test, y_pred)
 
+precision_curve, recall_curve, _ = precision_recall_curve(
+        y_test, y_prob_pred[:,0],  sample_weight = [7 if i == 1 else 1 for i in y_train])
+fpr, tpr, thresholds = roc_curve(y_test, y_prob_pred[:,0], pos_label=1)
+#plt.figure(1)
+#plt.plot(fpr,tpr)
+#plt.figure(2)
+#plt.plot(precision_curve, recall_curve)
+#plt.figure(3)
+#plt.imshow(confusion_matrix(y_test, y_pred))
+print conf
 print np.max(accuracy)
 print np.max(precision)
 print np.max(recall)

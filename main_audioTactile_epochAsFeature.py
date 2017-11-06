@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Created on Fri Jul 21 16:14:22 2017 
+Created on Fri Nov 03 14:38:09 2017
 
-@author: Maryam Mokheri
+@author: Amarantine
 """
 
 #%% import relevant toolboxes
@@ -82,7 +82,10 @@ AudioTactile.resample(sfreq=resamp_freq)
 #and Erwei did not mention the type of filter. Alborzused FIR for his p300 program.
 AudioTactile.filter(1,12,method='iir') 
 AudioTactile.info['lowpass']=12
+
 #%%annotations 
+onset=()
+duration=()
 annot_params= np.load('annot_params.npy')
 onset=annot_params[0]['onset']
 duration=annot_params[0]['duration']
@@ -220,13 +223,13 @@ del temprow
 
 #bestChans=np.array([False, False, False, True, False, False, False, True, True, \
 #                            False, False, False, False, False, False, False])
-bads=['F3','STI 014'] #non-relevant channels
+bads=['C3','C4','F3','F4','STI 014'] #non-relevant channels #non-relevant channels
 numOfChans=17
 numOfBestChans=numOfChans- len(bads) #one channel is stim (marker) channel
-numOfFeatures=17
-numOfTrainBlocks=4
-tmin=0
-tmax=.6
+numOfFeatures=36
+numOfTrainBlocks=5
+tmin=.1
+tmax=.8
 decim=20
 X=np.full([numOfTrainBlocks,runNum,8,13,numOfBestChans,numOfFeatures],np.nan)
 y=np.full([numOfTrainBlocks,runNum,8,13,1],np.nan)
@@ -277,49 +280,10 @@ for b in range(numOfTrainBlocks):
               
                  
                 for c in range(numOfBestChans):
-                    #extract featues for each epoch
-                    #0
-                    latency=AT_FeatureExtraction.latency(stim_epochs_data[e][c], tmin, decim)
-                    #1
-                    amplitude=AT_FeatureExtraction.amplitude(stim_epochs_data[e][c])
-                    #2
-                    lat_amp_ratio=AT_FeatureExtraction.lat_amp_ratio(stim_epochs_data[e][c], tmin, decim)
-                    #3
-                    abs_amp=AT_FeatureExtraction.abs_amp(stim_epochs_data[e][c])
-                    #4
-                    abs_lat_amp_ratio=AT_FeatureExtraction.abs_lat_amp_ratio(stim_epochs_data[e][c], tmin, decim)
-                    #5
-                    positive_area=AT_FeatureExtraction.positive_area(stim_epochs_data[e][c])
-                    #6
-                    negative_area=AT_FeatureExtraction.negative_area(stim_epochs_data[e][c])
-                    #7
-                    total_area=AT_FeatureExtraction.total_area(stim_epochs_data[e][c])
-                    #8
-                    abs_total_area=AT_FeatureExtraction.abs_total_area(stim_epochs_data[e][c])
-                    #9
-                    total_abs_area=AT_FeatureExtraction.total_abs_area(stim_epochs_data[e][c])
-                    #10
-                    avg_abs_slope=AT_FeatureExtraction.avg_abs_slope(stim_epochs_data[e][c])
-                    #11
-                    peak_to_peak=AT_FeatureExtraction.peak_to_peak(stim_epochs_data[e][c])
-                    #12
-                    pk_to_pk_tw=AT_FeatureExtraction.pk_to_pk_tw(stim_epochs_data[e][c],decim)
-                    #13
-                    pk_to_pk_slope=AT_FeatureExtraction.pk_to_pk_slope(stim_epochs_data[e][c],decim)
-                    #14
-                    zero_cross=AT_FeatureExtraction.zero_cross(stim_epochs_data[e][c])
-                    #15
-                    zero_cross_density=AT_FeatureExtraction.zero_cross_density(stim_epochs_data[e][c],decim)
-                    #16
-                    slope_sign_alt=AT_FeatureExtraction.slope_sign_alt(stim_epochs_data[e][c])
+                    stim_epochs_data[e][c]
                             
                     #assigning the features to a feature vector
-                    X[b][r][s][e][c][0:17]=[latency,amplitude,lat_amp_ratio,
-                                             abs_amp,abs_lat_amp_ratio,positive_area,
-                                             negative_area,total_area,abs_total_area,
-                                             total_abs_area,avg_abs_slope,peak_to_peak,
-                                             pk_to_pk_tw,pk_to_pk_slope,zero_cross,
-                                             zero_cross_density,slope_sign_alt]
+                    X[b][r][s][e][c][0:numOfFeatures]=stim_epochs_data[e][c]
                     #keeping a version of multi-dimensional X before reshaping it
                     X_multi_D=X
                     
@@ -332,31 +296,32 @@ for b in range(numOfTrainBlocks):
 
 #reshaping X into a 2D array: n_data and n_features
 X=np.reshape(X,(numOfTrainBlocks*runNum*8*13,numOfBestChans*numOfFeatures)) 
-y=np.reshape(y,(numOfTrainBlocks*runNum*8*13,1))           
-
+y=np.reshape(y,(numOfTrainBlocks*runNum*8*13,1))
+X_avgChans=np.mean(X_multi_D,axis=4)           
+X_avgChans=np.reshape(X_avgChans,(numOfTrainBlocks*runNum*8*13,numOfFeatures))
 
         
 #oversampling the oddball stimuli to fix imabalance of the data
-Xy=np.concatenate((X,y),axis=1)
-Xy_balanced=np.zeros(((Xy.shape[0])*14/8,Xy.shape[1]), dtype=float) # 14 is 7 non-oddball + 7*1 oddball data 
-j=0
-for i in range(Xy.shape[0]):
-    if Xy[i,-1]==1:
-        Xy_balanced[j:j+7,:]=np.tile(Xy[i,:], (7,1))
-        j=j+7
-        
-    else:
-        Xy_balanced[j,:]=Xy[i,:]
-        j=j+1
-
-
-
-
-X_balanced=Xy_balanced[:,0:-1]        
-y_balanced=Xy_balanced[:,-1]
-
-Xy_oddball=Xy[np.argwhere(Xy[:,-1]==1)]
-Xy_nonoddball=Xy[np.argwhere(Xy[:,-1]==0)]
+#Xy=np.concatenate((X,y),axis=1)
+#Xy_balanced=np.zeros(((Xy.shape[0])*14/8,Xy.shape[1]), dtype=float) # 14 is 7 non-oddball + 7*1 oddball data 
+#j=0
+#for i in range(Xy.shape[0]):
+#    if Xy[i,-1]==1:
+#        Xy_balanced[j:j+7,:]=np.tile(Xy[i,:], (7,1))
+#        j=j+7
+#        
+#    else:
+#        Xy_balanced[j,:]=Xy[i,:]
+#        j=j+1
+#
+#
+#
+#
+#X_balanced=Xy_balanced[:,0:-1]        
+#y_balanced=Xy_balanced[:,-1]
+#
+#Xy_oddball=Xy[np.argwhere(Xy[:,-1]==1)]
+#Xy_nonoddball=Xy[np.argwhere(Xy[:,-1]==0)]
                 
                     
                     
@@ -367,6 +332,17 @@ Xy_nonoddball=Xy[np.argwhere(Xy[:,-1]==0)]
 ##trial_Epoch.plot_topo_image
 ##trial_Epoch.plot_psd_topomap
 gc.collect()
+
+#%% classification
+
+for i in range(5):
+    X_trian1=X.take
+
+
+
+
+
+
 
 
 #%% plot the test run and epoch data

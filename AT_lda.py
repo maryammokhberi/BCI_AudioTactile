@@ -54,8 +54,8 @@ from sklearn import preprocessing
 
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 
-x=X_balanced
-y=y_balanced
+x=X
+y=y
 
 #removing the nan elements due to rejecting bad epochs
 nan_elements=np.argwhere(np.isnan(x)==True)
