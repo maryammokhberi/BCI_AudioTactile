@@ -21,7 +21,7 @@ import AT_FeatureExtraction
 
 
 #from autoreject import LocalAutoRejectCV
-bads=['CP4','T7','T8'] 
+bads=['PO7','PO8','P3','P4','T7','T8','CP3','CP4','C3','C4','F3','F4','STI 014'] 
 #%% change working directory and set parameters
 
 #path= input("Please enter the path for the data from audioTactile oddball \
@@ -220,14 +220,14 @@ del temprow
 
 #bestChans=np.array([False, False, False, True, False, False, False, True, True, \
 #                            False, False, False, False, False, False, False])
-bads=['F3','STI 014'] #non-relevant channels
+bads=bads=['PO7','PO8','P3','P4','T7','T8','CP3','CP4','C3','C4','F3','F4','STI 014']  #non-relevant channels
 numOfChans=17
 numOfBestChans=numOfChans- len(bads) #one channel is stim (marker) channel
 numOfFeatures=17
 numOfTrainBlocks=4
 tmin=0
-tmax=.6
-decim=20
+tmax=.8
+decim=4
 X=np.full([numOfTrainBlocks,runNum,8,13,numOfBestChans,numOfFeatures],np.nan)
 y=np.full([numOfTrainBlocks,runNum,8,13,1],np.nan)
 bad_epochs=np.zeros((numOfTrainBlocks, runNum))
@@ -244,7 +244,7 @@ for b in range(numOfTrainBlocks):
         trial_rerefrenced, _= mne.set_eeg_reference(trial,[])
         trial.filter(1,12,method='iir')   
         trial.resample(sfreq=resamp_freq)
-        trial_Epoch=mne.Epochs(trial_rerefrenced, exported_events, tmin=-.4,
+        trial_Epoch=mne.Epochs(trial_rerefrenced, exported_events, tmin=-.4,baseline=(-0.16,None),
                                tmax=1.5, decim=decim, reject_by_annotation=True,
                                reject=dict(eeg=2e-4)) #TODO: make tmin and tmax a variable, make sure thredhold for eeg is appropriate
 
@@ -333,28 +333,28 @@ for b in range(numOfTrainBlocks):
 #reshaping X into a 2D array: n_data and n_features
 X=np.reshape(X,(numOfTrainBlocks*runNum*8*13,numOfBestChans*numOfFeatures)) 
 y=np.reshape(y,(numOfTrainBlocks*runNum*8*13,1))           
-
+Xy=np.concatenate((X,y),axis=1)
 
         
 #oversampling the oddball stimuli to fix imabalance of the data
-Xy=np.concatenate((X,y),axis=1)
-Xy_balanced=np.zeros(((Xy.shape[0])*14/8,Xy.shape[1]), dtype=float) # 14 is 7 non-oddball + 7*1 oddball data 
-j=0
-for i in range(Xy.shape[0]):
-    if Xy[i,-1]==1:
-        Xy_balanced[j:j+7,:]=np.tile(Xy[i,:], (7,1))
-        j=j+7
-        
-    else:
-        Xy_balanced[j,:]=Xy[i,:]
-        j=j+1
-
-
-
-
-X_balanced=Xy_balanced[:,0:-1]        
-y_balanced=Xy_balanced[:,-1]
-
+#Xy=np.concatenate((X,y),axis=1)
+#Xy_balanced=np.zeros(((Xy.shape[0])*14/8,Xy.shape[1]), dtype=float) # 14 is 7 non-oddball + 7*1 oddball data 
+#j=0
+#for i in range(Xy.shape[0]):
+#    if Xy[i,-1]==1:
+#        Xy_balanced[j:j+7,:]=np.tile(Xy[i,:], (7,1))
+#        j=j+7
+#        
+#    else:
+#        Xy_balanced[j,:]=Xy[i,:]
+#        j=j+1
+#
+#
+#
+#
+#X_balanced=Xy_balanced[:,0:-1]        
+#y_balanced=Xy_balanced[:,-1]
+#
 Xy_oddball=Xy[np.argwhere(Xy[:,-1]==1)]
 Xy_nonoddball=Xy[np.argwhere(Xy[:,-1]==0)]
                 

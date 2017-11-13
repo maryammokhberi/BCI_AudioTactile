@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Created on Fri Nov 03 14:38:09 2017
+Created on Fri Jul 21 16:14:22 2017 
 
-@author: Amarantine
+@author: Maryam Mokheri
 """
 
 #%% import relevant toolboxes
@@ -17,11 +17,12 @@ import os
 import matplotlib.pyplot as plt
 import math
 import gc
-#import AT_FeatureExtraction
+import AT_FeatureExtraction
+import pywt
 
 
 #from autoreject import LocalAutoRejectCV
-bads=['Pz','Oz','PO7','PO8','P3','P4','T7','T8','CP3','CP4','C3','C4','F3','F4','STI 014'] 
+bads=['PO7','PO8','Oz','P3','Pz','P4','T7','T8','CP3','CP4','C3','Cz','C4','F3','F4','STI 014'] 
 #%% change working directory and set parameters
 
 #path= input("Please enter the path for the data from audioTactile oddball \
@@ -80,17 +81,14 @@ AudioTactile.resample(sfreq=resamp_freq)
 #Tim zeyl used the range 0.3, 20 Hz for filetering range. Erwei used 0.1,45 HZ 
 #as filtring range. P300 info is dominant in 0.1-4 HZ. Tim used 4th order butterworth (IIR)
 #and Erwei did not mention the type of filter. Alborzused FIR for his p300 program.
-AudioTactile.filter(0.3,32,None,method='iir') 
-AudioTactile.info['lowpass']=16
-
+AudioTactile.filter(0.3,30,method='iir') 
+AudioTactile.info['lowpass']=12
 #%%annotations 
-#onset=()
-#duration=()
-#annot_params= np.load('annot_params.npy')
-#onset=annot_params[0]['onset']
-#duration=annot_params[0]['duration']
-#annotations=mne.Annotations(onset,duration,'bad')
-#AudioTactile.annotations=annotations
+annot_params= np.load('annot_params.npy')
+onset=annot_params[0]['onset']
+duration=annot_params[0]['duration']
+annotations=mne.Annotations(onset,duration,'bad')
+AudioTactile.annotations=annotations
 
 
 gc.collect()
@@ -226,14 +224,15 @@ del temprow
 
 numOfChans=17
 numOfBestChans=numOfChans- len(bads) #one channel is stim (marker) channel
-numOfFeatures=201
+numOfFeatures=17
 numOfTrainBlocks=5
 tmin=0
 tmax=.8
 decim=4
 X=np.full([numOfTrainBlocks,runNum,8,13,numOfBestChans,numOfFeatures],np.nan)
 y=np.full([numOfTrainBlocks,runNum,8,13,1],np.nan)
-
+bad_epochs=np.zeros((numOfTrainBlocks, runNum))
+prediction_is_correct=np.zeros((50,1))
 for b in range(numOfTrainBlocks):
     for r in range(runNum):
         print "********preparing data for the stimuli in block", b+1,"run#", r+1,"****************\
@@ -244,15 +243,15 @@ for b in range(numOfTrainBlocks):
         trial.info['bads']=bads
         trial.set_montage(montage)
         trial_rerefrenced, _= mne.set_eeg_reference(trial,[])
-        trial.filter(0.3,32,method='iir')   
+        trial.filter(0.3, 30, method='iir')   
         trial.resample(sfreq=resamp_freq)
-        trial_Epoch=mne.Epochs(trial_rerefrenced, exported_events, tmin=-.4,baseline=(-.16,None),
+        trial_Epoch=mne.Epochs(trial_rerefrenced, exported_events, tmin=-.4,baseline=(-.16,0),
                                tmax=1.5, decim=decim, reject_by_annotation=True,
                                reject=dict(eeg=2e-4)) #TODO: make tmin and tmax a variable, make sure thredhold for eeg is appropriate
 
         trial_Epoch.load_data()
         trial_Epoch_long=trial_Epoch.copy() # to be used later in peak-alignment
-        trial_Epoch.crop(tmin=tmin,tmax=tmax)                                                   
+        trial_Epoch.crop(tmin=tmin,tmax=tmax)        
         trial_Epoch.drop_channels(trial_Epoch.info['bads'])
         trial_Epoch_data=trial_Epoch.get_data()
         #######creat feature vector for all stimuli in one run(trial) ########        
@@ -279,10 +278,51 @@ for b in range(numOfTrainBlocks):
               
                  
                 for c in range(numOfBestChans):
-                    stim_epochs_data[e][c]
+                    #extract featues for each epoch
+                    #0
+                    latency=AT_FeatureExtraction.latency(stim_epochs_data[e][c], tmin, decim)
+                    #1
+                    amplitude=AT_FeatureExtraction.amplitude(stim_epochs_data[e][c])
+                    #2
+                    lat_amp_ratio=AT_FeatureExtraction.lat_amp_ratio(stim_epochs_data[e][c], tmin, decim)
+                    #3
+                    abs_amp=AT_FeatureExtraction.abs_amp(stim_epochs_data[e][c])
+                    #4
+                    abs_lat_amp_ratio=AT_FeatureExtraction.abs_lat_amp_ratio(stim_epochs_data[e][c], tmin, decim)
+                    #5
+                    positive_area=AT_FeatureExtraction.positive_area(stim_epochs_data[e][c])
+                    #6
+                    negative_area=AT_FeatureExtraction.negative_area(stim_epochs_data[e][c])
+                    #7
+                    total_area=AT_FeatureExtraction.total_area(stim_epochs_data[e][c])
+                    #8
+                    abs_total_area=AT_FeatureExtraction.abs_total_area(stim_epochs_data[e][c])
+                    #9
+                    total_abs_area=AT_FeatureExtraction.total_abs_area(stim_epochs_data[e][c])
+                    #10
+                    avg_abs_slope=AT_FeatureExtraction.avg_abs_slope(stim_epochs_data[e][c])
+                    #11
+                    peak_to_peak=AT_FeatureExtraction.peak_to_peak(stim_epochs_data[e][c])
+                    #12
+                    pk_to_pk_tw=AT_FeatureExtraction.pk_to_pk_tw(stim_epochs_data[e][c],decim)
+                    #13
+                    pk_to_pk_slope=AT_FeatureExtraction.pk_to_pk_slope(stim_epochs_data[e][c],decim)
+                    #14
+                    zero_cross=AT_FeatureExtraction.zero_cross(stim_epochs_data[e][c])
+                    #15
+                    zero_cross_density=AT_FeatureExtraction.zero_cross_density(stim_epochs_data[e][c],decim)
+                    #16
+                    slope_sign_alt=AT_FeatureExtraction.slope_sign_alt(stim_epochs_data[e][c])
+                    #17-43
+                    cA3,cD3,cD2,cD1=pywt.wavedec(stim_epochs_data[e][c],'db1',level=3)
                             
                     #assigning the features to a feature vector
-                    X[b][r][s][e][c][0:numOfFeatures]=stim_epochs_data[e][c]
+                    X[b][r][s][e][c][0:33]=[latency,amplitude,lat_amp_ratio,
+                                             abs_amp,abs_lat_amp_ratio,positive_area,
+                                             negative_area,total_area,abs_total_area,
+                                             total_abs_area,avg_abs_slope,peak_to_peak,
+                                             pk_to_pk_tw,pk_to_pk_slope,zero_cross,
+                                             zero_cross_density,slope_sign_alt,cA3]
                     #keeping a version of multi-dimensional X before reshaping it
                     X_multi_D=X
                     
@@ -295,12 +335,11 @@ for b in range(numOfTrainBlocks):
 
 #reshaping X into a 2D array: n_data and n_features
 X=np.reshape(X,(numOfTrainBlocks*runNum*8*13,numOfBestChans*numOfFeatures)) 
-y=np.reshape(y,(numOfTrainBlocks*runNum*8*13,1))
-X_avgChans=np.mean(X_multi_D,axis=4)           
-X_avgChans=np.reshape(X_avgChans,(numOfTrainBlocks*runNum*8*13,numOfFeatures))
+y=np.reshape(y,(numOfTrainBlocks*runNum*8*13,1))           
 
-        
-#oversampling the oddball stimuli to fix imabalance of the data
+#
+#        
+##oversampling the oddball stimuli to fix imabalance of the data
 #Xy=np.concatenate((X,y),axis=1)
 #Xy_balanced=np.zeros(((Xy.shape[0])*14/8,Xy.shape[1]), dtype=float) # 14 is 7 non-oddball + 7*1 oddball data 
 #j=0
@@ -331,7 +370,6 @@ X_avgChans=np.reshape(X_avgChans,(numOfTrainBlocks*runNum*8*13,numOfFeatures))
 ##trial_Epoch.plot_topo_image
 ##trial_Epoch.plot_psd_topomap
 gc.collect()
-
 
 
 #%% plot the test run and epoch data
