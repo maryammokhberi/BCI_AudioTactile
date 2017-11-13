@@ -84,11 +84,11 @@ AudioTactile.resample(sfreq=resamp_freq)
 AudioTactile.filter(0.3,30,method='iir') 
 AudioTactile.info['lowpass']=12
 #%%annotations 
-annot_params= np.load('annot_params.npy')
-onset=annot_params[0]['onset']
-duration=annot_params[0]['duration']
-annotations=mne.Annotations(onset,duration,'bad')
-AudioTactile.annotations=annotations
+#annot_params= np.load('annot_params.npy')
+#onset=annot_params[0]['onset']
+#duration=annot_params[0]['duration']
+#annotations=mne.Annotations(onset,duration,'bad')
+#AudioTactile.annotations=annotations
 
 
 gc.collect()
@@ -224,7 +224,7 @@ del temprow
 
 numOfChans=17
 numOfBestChans=numOfChans- len(bads) #one channel is stim (marker) channel
-numOfFeatures=17
+numOfFeatures=43
 numOfTrainBlocks=5
 tmin=0
 tmax=.8
@@ -317,12 +317,12 @@ for b in range(numOfTrainBlocks):
                     cA3,cD3,cD2,cD1=pywt.wavedec(stim_epochs_data[e][c],'db1',level=3)
                             
                     #assigning the features to a feature vector
-                    X[b][r][s][e][c][0:33]=[latency,amplitude,lat_amp_ratio,
-                                             abs_amp,abs_lat_amp_ratio,positive_area,
-                                             negative_area,total_area,abs_total_area,
-                                             total_abs_area,avg_abs_slope,peak_to_peak,
-                                             pk_to_pk_tw,pk_to_pk_slope,zero_cross,
-                                             zero_cross_density,slope_sign_alt,cA3]
+                    X[b][r][s][e][c][0:43]=np.concatenate(([latency],[amplitude],[lat_amp_ratio],
+                                             [abs_amp],[abs_lat_amp_ratio],[positive_area],
+                                             [negative_area],[total_area],[abs_total_area],
+                                             [total_abs_area],[avg_abs_slope],[peak_to_peak],
+                                             [pk_to_pk_tw],[pk_to_pk_slope],[zero_cross],
+                                             [zero_cross_density],[slope_sign_alt],cA3))
                     #keeping a version of multi-dimensional X before reshaping it
                     X_multi_D=X
                     
