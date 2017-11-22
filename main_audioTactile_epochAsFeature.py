@@ -21,7 +21,7 @@ import gc
 
 
 #from autoreject import LocalAutoRejectCV
-bads=['Pz','Oz','PO7','PO8','P3','P4','T7','T8','CP3','CP4','C3','C4','F3','F4','STI 014'] 
+bads=['PO7','PO8','T7','T8','C3','C4','F3','F4','STI 014'] 
 #%% change working directory and set parameters
 
 #path= input("Please enter the path for the data from audioTactile oddball \
@@ -80,8 +80,8 @@ AudioTactile.resample(sfreq=resamp_freq)
 #Tim zeyl used the range 0.3, 20 Hz for filetering range. Erwei used 0.1,45 HZ 
 #as filtring range. P300 info is dominant in 0.1-4 HZ. Tim used 4th order butterworth (IIR)
 #and Erwei did not mention the type of filter. Alborzused FIR for his p300 program.
-AudioTactile.filter(0.3,32,None,method='iir') 
-AudioTactile.info['lowpass']=16
+AudioTactile.filter(0.3,12,None,method='iir') 
+AudioTactile.info['lowpass']=12
 
 #%%annotations 
 #onset=()
@@ -109,12 +109,12 @@ AudioTactile.n_times
 #AudioTactile_Epoch_runs=mne.Epochs(AudioTactile, exported_events, event_id={'run start':6}, tmin=-1, tmax=60)
 
 #%% visualize event
-event_id={'Baseline Start':1,'Baseline stop':2,'run start':6,'Starto''cow': 8,\
-          'frog': 9,
-            'bear': 10, 'mouse': 11,
-            'cat': 12, 'chick': 13, 'fox':14 , 
-            'horse':15}
-mne.viz.plot_events(events, AudioTactile.info['sfreq'], event_id=event_id)
+#event_id={'Baseline Start':1,'Baseline stop':2,'run start':6,'Starto''cow': 8,\
+#          'frog': 9,
+#            'bear': 10, 'mouse': 11,
+#            'cat': 12, 'chick': 13, 'fox':14 , 
+#            'horse':15}
+#mne.viz.plot_events(events, AudioTactile.info['sfreq'], event_id=event_id)
 #%% separate blocks 
 event_time_baseline=[exported_events[i,0] for i in range(len(exported_events))\
                      if exported_events[i,2] == 1]
@@ -244,7 +244,7 @@ for b in range(numOfTrainBlocks):
         trial.info['bads']=bads
         trial.set_montage(montage)
         trial_rerefrenced, _= mne.set_eeg_reference(trial,[])
-        trial.filter(0.3,32,method='iir')   
+        trial.filter(0.3,12,method='iir')   
         trial.resample(sfreq=resamp_freq)
         trial_Epoch=mne.Epochs(trial_rerefrenced, exported_events, tmin=-.4,baseline=(-.16,None),
                                tmax=1.5, decim=decim, reject_by_annotation=True,
@@ -279,8 +279,7 @@ for b in range(numOfTrainBlocks):
               
                  
                 for c in range(numOfBestChans):
-                    stim_epochs_data[e][c]
-                            
+                                            
                     #assigning the features to a feature vector
                     X[b][r][s][e][c][0:numOfFeatures]=stim_epochs_data[e][c]
                     #keeping a version of multi-dimensional X before reshaping it

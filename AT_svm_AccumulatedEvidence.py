@@ -41,7 +41,7 @@ np.random.seed(123)
 from sklearn.metrics import accuracy_score, precision_score, roc_auc_score, recall_score
 from sklearn.model_selection import KFold
 kf = KFold(n_splits=5)
-kf.get_n_splits(X)
+kf.get_n_splits(X_tf)
 print(kf) 
 accuracy=list()
 precision=list()
@@ -50,10 +50,10 @@ roc_auc=list()
 conf = np.zeros((2,2))
 evidence_accumulation_score_all=np.full([5], np.nan)
 fold=-1
-for train_index, test_index in kf.split(X):
+for train_index, test_index in kf.split(X_tf):
     fold+=1
     print("TRAIN:", train_index, "TEST:", test_index)
-    X_train, X_test = X[train_index], X[test_index]
+    X_train, X_test = X_tf[train_index], X_tf[test_index]
     y_train, y_test = y[train_index], y[test_index]
     
 #    
@@ -92,7 +92,7 @@ for train_index, test_index in kf.split(X):
     data_X_train=data_Xy_train[:,0:-1]        
     data_y_train=data_Xy_train[:,-1]
     #scaling features between -1 and 1
-#    data_X_train=preprocessing.minmax_scale(data_X_train,feature_range=(-1,1))
+    data_X_train=preprocessing.minmax_scale(data_X_train,feature_range=(-1,1))
     #x=preprocessing.scale(X, axis = 0 )
     
     
@@ -122,14 +122,14 @@ for train_index, test_index in kf.split(X):
             data_y_test=data_Xy_test[:,-1]
             
             #scaling features between -1 and 1
-#            data_X_test=preprocessing.minmax_scale(data_X_test,feature_range=(-1,1))
+            data_X_test=preprocessing.minmax_scale(data_X_test,feature_range=(-1,1))
             #x=preprocessing.scale(X, axis = 0 )
                    
             
 #            data_y_pred=AT_svc.predict(data_X_test)
             data_y_pred_prob=AT_svc.predict_proba(data_X_test)
 #            print data_y_pred_prob
-            data_y_pred=[1 if i<.7 else 0 for i in data_y_pred_prob[:,0]]
+            data_y_pred=[1 if i<.4 else 0 for i in data_y_pred_prob[:,0]]
             data_y_pred=np.asarray(data_y_pred)
             confidence[st]=np.mean(data_y_pred)
             stim_label[st]=np.mean(data_y_test)

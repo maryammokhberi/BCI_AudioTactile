@@ -97,7 +97,7 @@ for train_index, test_index in kf.split(X):
     
     
     #training the classifier
-    AT_svc = svm.SVC(kernel='linear', C=1, probability=True,class_weight='balanced').fit(data_X_train, data_y_train)
+    AT_svc = svm.SVC(kernel='linear', C=2, probability=True,class_weight='balanced').fit(data_X_train, data_y_train)
     
     
     #testing the classifier

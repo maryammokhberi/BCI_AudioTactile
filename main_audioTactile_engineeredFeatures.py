@@ -22,7 +22,7 @@ import pywt
 
 
 #from autoreject import LocalAutoRejectCV
-bads=['PO7','PO8','Oz','P3','Pz','P4','T7','T8','CP3','CP4','C3','Cz','C4','F3','F4','STI 014'] 
+bads=['PO7','PO8','T7','T8','C3','C4','F3','F4','STI 014'] 
 #%% change working directory and set parameters
 
 #path= input("Please enter the path for the data from audioTactile oddball \
