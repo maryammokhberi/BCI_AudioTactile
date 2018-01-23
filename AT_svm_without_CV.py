@@ -6,7 +6,7 @@ Created on Sat Nov 04 15:38:59 2017
 """
 
 
-def AT_svm(X,y):
+#def AT_svm(X,y):
 import numpy as np
 from sklearn import preprocessing
 from sklearn.metrics import precision_recall_curve, roc_curve, confusion_matrix
@@ -115,4 +115,4 @@ print np.max(precision)
 print np.max(recall)
 print np.max(roc_auc)
 
-return AT_svc
+#return AT_svc

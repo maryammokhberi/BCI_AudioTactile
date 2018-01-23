@@ -22,12 +22,12 @@ import pywt
 
 
 #from autoreject import LocalAutoRejectCV
-bads=['PO7','PO8','T7','T8','C3','C4','F3','F4','STI 014'] 
+
 #%% change working directory and set parameters
 
 #path= input("Please enter the path for the data from audioTactile oddball \
 #task: ")
-path="E:\Biomedical.master\Data\par130_1" #TODO : go back to input design
+path="E:\Biomedical.master\Data\par061_2" #TODO : go back to input design
 os.chdir(path)
 montage=mne.channels.read_montage('standard_1020')
 layout=mne.channels.read_layout('EEG1005')
@@ -42,7 +42,7 @@ resamp_freq=float(1000)
 #fname= input("Please enter the path for the data from audioTactile oddball \
 #task:\n Please include the filename in the path and make sure to put double \
 #quotes around the it.") #please enter the path for the data
-fname="E:\Biomedical.master\Data\par130_1\AudioTactile.vhdr" #TODO: go back to input design
+fname="E:\Biomedical.master\Data\par061_2\AudioTactile.vhdr" #TODO: go back to input design
 #file_name= input("Please enter the name of the data from audioTactile oddball \
 # task: ")
 #fname= [file_path, '/' ,file_name]
@@ -81,14 +81,17 @@ AudioTactile.resample(sfreq=resamp_freq)
 #Tim zeyl used the range 0.3, 20 Hz for filetering range. Erwei used 0.1,45 HZ 
 #as filtring range. P300 info is dominant in 0.1-4 HZ. Tim used 4th order butterworth (IIR)
 #and Erwei did not mention the type of filter. Alborzused FIR for his p300 program.
-AudioTactile.filter(0.3,30,method='iir') 
+AudioTactile.filter(0.5,12,method='iir') 
 AudioTactile.info['lowpass']=12
 #%%annotations 
-#annot_params= np.load('annot_params.npy')
-#onset=annot_params[0]['onset']
-#duration=annot_params[0]['duration']
+#annot_params= np.load(os.path.join(path, 'annot_params.npy'))
+#onset=annot_params.item().get('onset')
+#duration=annot_params.item().get('duration')
+#badchannels=annot_params.item().get('badchannels')
 #annotations=mne.Annotations(onset,duration,'bad')
 #AudioTactile.annotations=annotations
+#bads=badchannels
+#AudioTactile.info['bads']=bads
 
 
 gc.collect()
@@ -243,7 +246,7 @@ for b in range(numOfTrainBlocks):
         trial.info['bads']=bads
         trial.set_montage(montage)
         trial_rerefrenced, _= mne.set_eeg_reference(trial,[])
-        trial.filter(0.3, 30, method='iir')   
+#        trial.filter(0.5, 12, method='iir')   
         trial.resample(sfreq=resamp_freq)
         trial_Epoch=mne.Epochs(trial_rerefrenced, exported_events, tmin=-.4,baseline=(-.16,0),
                                tmax=1.5, decim=decim, reject_by_annotation=True,
